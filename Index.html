@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MIU & FOCUS 點貨系統</title>
+    <title>MIU & FOCUS 點貨系統 - 正序版</title>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -11,7 +11,6 @@
         .tab-active { border-bottom: 3px solid #78350f; color: #78350f; }
         .loading-overlay { background: rgba(255,255,255,0.8); backdrop-filter: blur(4px); }
         [v-cloak] { display: none; }
-        /* 店鋪專屬色 */
         .shop-miu { color: #84522a; border-color: #84522a; }
         .shop-miu-bg { background-color: #fdf5ef; color: #84522a; }
         .shop-focus { color: #2563eb; border-color: #2563eb; }
@@ -30,7 +29,7 @@
 
         <div v-if="loading" class="fixed inset-0 loading-overlay z-[100] flex flex-col items-center justify-center">
             <div class="w-8 h-8 border-4 border-amber-800 border-t-transparent rounded-full animate-spin mb-2"></div>
-            <p class="text-amber-900 text-sm font-bold tracking-widest">資料傳輸中...</p>
+            <p class="text-amber-900 text-sm font-bold tracking-widest">載入資料中...</p>
         </div>
 
         <div class="sticky top-0 bg-white/90 backdrop-blur-md z-10 p-4 border-b">
@@ -85,7 +84,6 @@
                         <span class="text-[10px] font-bold uppercase mr-1">{{ color }}</span>
                         <span class="text-lg font-black">{{ qty }}</span>
                     </div>
-                    <div v-if="Object.keys(currentItemTotal).length === 0" class="text-sm opacity-60 italic">尚未有登記紀錄</div>
                 </div>
             </div>
 
@@ -230,10 +228,8 @@
                                     const stats = summary[r.name].items[item.id].colors[color];
                                     stats.total += qty;
                                     stats.shops[r.shop] = (stats.shops[r.shop] || 0) + qty;
-                                    
                                     if (r.status === '到貨') stats.actual += qty;
                                     else if (r.status === '缺量') stats.actual += (r.actualQtys[color] || 0);
-                                    
                                     stats.missing = stats.total - stats.actual;
                                     if (stats.missing > 0) summary[r.name].hasMissing = true;
                                 }
@@ -268,6 +264,7 @@
                         Object.assign(this.editingItem, { name: this.newItem.name, code: this.newItem.code.toUpperCase(), colors: colorList });
                         this.editingItem = null;
                     } else {
+                        // 款式列表維持上新下舊，方便找最新建的商品
                         this.items.unshift({ id: Date.now(), code: this.newItem.code.toUpperCase(), name: this.newItem.name, colors: colorList, records: [] });
                     }
                     this.newItem = { id: null, name: '', code: '', colors: '' };
@@ -300,7 +297,8 @@
                         Object.assign(target, { name: this.newRecord.name, qtys: { ...this.newRecord.qtys }, shop: this.newRecord.shop });
                         this.editingRecordIndex = null;
                     } else {
-                        this.selectedItem.records.unshift({
+                        // 關鍵改動：使用 push 將新紀錄加到陣列末尾
+                        this.selectedItem.records.push({
                             ...this.newRecord,
                             actualQtys: { ...this.newRecord.qtys },
                             status: '未到貨',
@@ -316,7 +314,6 @@
                     this.editingRecordIndex = idx;
                     const r = this.selectedItem.records[idx];
                     this.newRecord = { name: r.name, qtys: { ...r.qtys }, shop: r.shop };
-                    window.scrollTo({ top: 100, behavior: 'smooth' });
                 },
                 cancelEditRecord() {
                     this.editingRecordIndex = null;
