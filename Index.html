@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>點貨助手 - 完整編輯版</title>
+    <title>MIU點貨登記 - 雲端版</title>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -57,7 +57,7 @@
                 <div v-for="item in filteredItems" :key="item.id" 
                      class="bg-white p-4 rounded-2xl ios-shadow flex justify-between items-center group">
                     <div @click="openDetail(item)" class="flex-1 cursor-pointer">
-                        <span class="text-[10px] font-bold bg-blue-100 text-blue-600 px-2 py-0.5 rounded mr-2">{{ item.code }}</span>
+                        <span class="text-[10px] font-bold bg-blue-100 text-blue-600 px-2 py-0.5 rounded mr-2 uppercase">{{ item.code }}</span>
                         <span class="font-bold text-gray-800">{{ item.name }}</span>
                     </div>
                     <div class="flex gap-3">
@@ -69,7 +69,7 @@
         </div>
 
         <div v-if="view === 'detail'" class="p-4">
-            <button @click="view = 'items'" class="mb-4 text-blue-500 font-bold">‹ 返回清單</button>
+            <button @click="view = 'items'" class="mb-4 text-blue-500 font-bold flex items-center">‹ 返回清單</button>
             <div class="bg-white p-5 rounded-2xl ios-shadow">
                 <h2 class="text-xl font-bold mb-4">{{ selectedItem.code }} {{ selectedItem.name }}</h2>
                 
@@ -89,7 +89,7 @@
                         <div class="flex justify-between items-start mb-2">
                             <span class="font-black text-gray-700">{{ r.name }}</span>
                             <div class="flex items-center gap-2">
-                                <select v-model="r.status" @change="saveData" :class="statusColor(r.status)" class="text-[10px] rounded-full px-2 py-1 font-bold">
+                                <select v-model="r.status" @change="saveData" :class="statusColor(r.status)" class="text-[10px] rounded-full px-2 py-1 font-bold shadow-sm border-none">
                                     <option>未到貨</option><option>到貨</option><option>缺量</option>
                                 </select>
                                 <button @click="deleteRecord(idx)" class="text-red-400 text-lg ml-1">×</button>
@@ -100,10 +100,13 @@
                                 {{ c }}: {{ q }}
                             </span>
                         </div>
-                        <div v-if="r.status === '缺量'" class="mt-2 p-2 bg-red-50 rounded text-[10px]">
-                            <div v-for="(q, c) in r.qtys" v-show="q > 0" :key="c" class="flex justify-between items-center mb-1">
-                                <span>{{ c }} 實際到貨：</span>
-                                <input type="number" v-model.number="r.actualQtys[c]" @change="saveData" class="w-8 text-right bg-white rounded border">
+                        <div v-if="r.status === '缺量'" class="mt-2 p-3 bg-red-50/50 rounded-lg border border-red-100">
+                            <p class="text-[10px] font-bold text-red-500 mb-2">實際到貨數：</p>
+                            <div class="grid grid-cols-2 gap-2">
+                                <div v-for="(q, c) in r.qtys" v-show="q > 0" :key="c" class="flex justify-between items-center bg-white px-2 py-1 rounded border">
+                                    <span class="text-[10px] text-gray-400">{{ c }}</span>
+                                    <input type="number" v-model.number="r.actualQtys[c]" @change="saveData" class="w-8 text-right font-bold text-red-600 bg-transparent outline-none">
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -114,13 +117,13 @@
         <div v-if="view === 'customers'" class="p-4">
             <div v-for="(data, name) in filteredCustomerGroups" :key="name" class="bg-white p-5 rounded-2xl ios-shadow mb-4">
                 <h3 class="font-black text-lg mb-3 border-b pb-1">👤 {{ name }}</h3>
-                <div v-for="order in data" class="mb-3 p-2 bg-slate-50 rounded-lg text-xs">
+                <div v-for="order in data" class="mb-3 p-3 bg-slate-50 rounded-xl text-xs">
                     <div class="flex justify-between font-bold mb-1">
                         <span>{{ order.itemCode }} {{ order.itemName }}</span>
-                        <span :class="statusColor(order.status)" class="px-2 rounded-full">{{ order.status }}</span>
+                        <span :class="statusColor(order.status)" class="px-2 py-0.5 rounded-full text-[10px]">{{ order.status }}</span>
                     </div>
                     <div class="text-gray-400">
-                        <span v-for="(q, c) in order.qtys" v-show="q > 0" class="mr-2">{{ c }}×{{ q }}</span>
+                        <span v-for="(q, c) in order.qtys" v-show="q > 0" class="mr-3">{{ c }} × {{ q }}</span>
                     </div>
                 </div>
             </div>
@@ -130,6 +133,7 @@
     <script>
         const CLOUD_API = "https://script.google.com/macros/s/AKfycbz85Vud5u0MqEhG6GaSqWnNjqwa7wx2NFV5aZLmx07slZPseuqQHbrdzAS7gAW-jifM/exec";
         const { createApp } = Vue;
+        
         createApp({
             data() {
                 return {
@@ -144,7 +148,10 @@
                     saving: false
                 }
             },
-            mounted() { this.fetchData(); },
+            // 在頁面載入時自動執行 fetchData
+            mounted() { 
+                this.fetchData(); 
+            },
             computed: {
                 filteredItems() {
                     const q = this.searchQuery.toLowerCase();
@@ -174,23 +181,32 @@
                     this.loading = true;
                     try {
                         const res = await fetch(CLOUD_API);
-                        this.items = await res.json() || [];
-                    } catch (e) { console.error("Fetch error"); }
-                    finally { this.loading = false; }
+                        const json = await res.json();
+                        this.items = json || [];
+                    } catch (e) { 
+                        console.error("Fetch error:", e);
+                    } finally { 
+                        this.loading = false; 
+                    }
                 },
                 async saveData() {
                     this.saving = true;
                     try {
-                        await fetch(CLOUD_API, { method: "POST", body: JSON.stringify(this.items) });
-                    } catch (e) { alert("同步失敗，請檢查網路"); }
-                    finally { this.saving = false; }
+                        await fetch(CLOUD_API, { 
+                            method: "POST", 
+                            body: JSON.stringify(this.items) 
+                        });
+                    } catch (e) { 
+                        alert("同步失敗，請檢查網路連接"); 
+                    } finally { 
+                        this.saving = false; 
+                    }
                 },
                 addItem() {
                     if (!this.newItem.name || !this.newItem.code) return;
                     const colorList = this.newItem.colors.split(/[,，]/).map(s => s.trim()).filter(s => s);
                     
                     if (this.editingItem) {
-                        // 編輯模式
                         Object.assign(this.editingItem, {
                             name: this.newItem.name,
                             code: this.newItem.code.toUpperCase(),
@@ -198,8 +214,13 @@
                         });
                         this.editingItem = null;
                     } else {
-                        // 新增模式
-                        this.items.unshift({ id: Date.now(), code: this.newItem.code.toUpperCase(), name: this.newItem.name, colors: colorList, records: [] });
+                        this.items.unshift({ 
+                            id: Date.now(), 
+                            code: this.newItem.code.toUpperCase(), 
+                            name: this.newItem.name, 
+                            colors: colorList, 
+                            records: [] 
+                        });
                     }
                     this.newItem = { id: null, name: '', code: '', colors: '' };
                     this.saveData();
@@ -207,7 +228,7 @@
                 startEditItem(item) {
                     this.editingItem = item;
                     this.newItem = { ...item, colors: item.colors.join(',') };
-                    window.scrollTo(0,0);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
                 },
                 cancelEditItem() {
                     this.editingItem = null;
@@ -231,7 +252,7 @@
                         ...this.newRecord,
                         actualQtys: { ...this.newRecord.qtys },
                         status: '未到貨',
-                        time: new Date().toLocaleString()
+                        time: new Date().toLocaleString('zh-TW', { hour12: false })
                     });
                     this.newRecord = { name: '', qtys: {} };
                     this.selectedItem.colors.forEach(c => this.newRecord.qtys[c] = null);
@@ -253,4 +274,3 @@
     </script>
 </body>
 </html>
-
