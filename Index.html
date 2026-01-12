@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MIU點貨登記 - 雲端版</title>
+    <title>MIU點貨 Pro - 強化統計版</title>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -18,23 +18,23 @@
         
         <div class="fixed bottom-4 left-4 z-50 flex gap-2">
             <div v-if="saving" class="bg-black text-white px-3 py-1 rounded-full text-[10px] shadow-lg animate-pulse">☁️ 同步中...</div>
-            <button @click="fetchData" class="bg-white text-blue-600 px-3 py-1 rounded-full text-[10px] shadow border font-bold">🔄 強制刷新</button>
+            <button @click="fetchData" class="bg-white text-blue-600 px-3 py-1 rounded-full text-[10px] shadow border font-bold">🔄 刷新</button>
         </div>
 
         <div v-if="loading" class="fixed inset-0 loading-overlay z-[100] flex flex-col items-center justify-center">
             <div class="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-2"></div>
-            <p class="text-blue-600 text-sm font-bold">同步資料庫...</p>
+            <p class="text-blue-600 text-sm font-bold">讀取雲端資料...</p>
         </div>
 
         <div class="sticky top-0 bg-white/90 backdrop-blur-md z-10 p-4 border-b">
-            <h1 class="text-xl font-bold text-gray-800 mb-3 text-center">📦 MIU點貨登記</h1>
+            <h1 class="text-xl font-bold text-gray-800 mb-2 text-center">📦 MIU 點貨系統</h1>
             <input v-model="searchQuery" type="text" placeholder="🔍 搜尋款號、名稱、客人..." 
                    class="w-full p-3 bg-gray-100 border-none rounded-xl focus:ring-2 focus:ring-blue-500 outline-none">
         </div>
 
         <div class="flex bg-white border-b text-sm font-medium text-gray-500">
-            <button @click="view = 'items'" :class="{'tab-active': view === 'items'}" class="py-3 w-1/2 text-center">款式管理</button>
-            <button @click="view = 'customers'" :class="{'tab-active': view === 'customers'}" class="py-3 w-1/2 text-center">客戶總覽</button>
+            <button @click="view = 'items'" :class="{'tab-active': view === 'items'}" class="py-3 w-1/2 text-center text-sm">款式管理</button>
+            <button @click="view = 'customers'" :class="{'tab-active': view === 'customers'}" class="py-3 w-1/2 text-center text-sm">客戶總覽(統計)</button>
         </div>
 
         <div v-if="view === 'items'" class="p-4">
@@ -73,26 +73,38 @@
             <div class="bg-white p-5 rounded-2xl ios-shadow">
                 <h2 class="text-xl font-bold mb-4">{{ selectedItem.code }} {{ selectedItem.name }}</h2>
                 
-                <div class="bg-slate-50 p-4 rounded-xl mb-6">
-                    <input v-model="newRecord.name" placeholder="👤 客人姓名" class="w-full border p-3 rounded-xl mb-3 text-sm">
+                <div class="bg-slate-50 p-4 rounded-xl mb-6 border border-slate-200">
+                    <h3 class="text-xs font-bold text-slate-500 mb-3">{{ editingRecordIndex !== null ? '✏️ 正在修改紀錄' : '🆕 新增登記' }}</h3>
+                    <input v-model="newRecord.name" placeholder="👤 客人姓名" class="w-full border p-3 rounded-xl mb-3 text-sm focus:ring-2 focus:ring-blue-400">
                     <div class="grid grid-cols-2 gap-2 mb-3">
                         <div v-for="color in selectedItem.colors" :key="color" class="flex items-center bg-white p-2 rounded-xl border">
                             <span class="text-[10px] w-12 truncate text-gray-400 font-bold uppercase">{{ color }}</span>
                             <input type="number" v-model.number="newRecord.qtys[color]" class="w-full text-right outline-none font-bold text-blue-600" placeholder="0">
                         </div>
                     </div>
-                    <button @click="addRecord" class="w-full bg-slate-800 text-white py-3 rounded-xl font-bold">確認登記並同步</button>
+                    <div class="flex gap-2">
+                        <button @click="addRecord" class="flex-1 bg-slate-800 text-white py-3 rounded-xl font-bold">
+                            {{ editingRecordIndex !== null ? '更新紀錄' : '確認登記' }}
+                        </button>
+                        <button v-if="editingRecordIndex !== null" @click="cancelEditRecord" class="px-4 bg-gray-200 text-gray-600 rounded-xl font-bold">取消</button>
+                    </div>
                 </div>
 
                 <div class="space-y-4">
-                    <div v-for="(r, idx) in selectedItem.records" :key="idx" class="bg-gray-50 p-4 rounded-xl border border-transparent">
-                        <div class="flex justify-between items-start mb-2">
-                            <span class="font-black text-gray-700">{{ r.name }}</span>
+                    <div v-for="(r, idx) in selectedItem.records" :key="idx" 
+                         :class="editingRecordIndex === idx ? 'ring-2 ring-blue-500 border-transparent' : 'border-transparent'"
+                         class="bg-gray-50 p-4 rounded-xl border relative transition-all">
+                        <div class="flex justify-between items-start mb-1">
+                            <div>
+                                <span class="font-black text-gray-700 mr-2">{{ r.name }}</span>
+                                <span class="text-[9px] text-gray-400">{{ r.time }}</span>
+                            </div>
                             <div class="flex items-center gap-2">
                                 <select v-model="r.status" @change="saveData" :class="statusColor(r.status)" class="text-[10px] rounded-full px-2 py-1 font-bold shadow-sm border-none">
                                     <option>未到貨</option><option>到貨</option><option>缺量</option>
                                 </select>
-                                <button @click="deleteRecord(idx)" class="text-red-400 text-lg ml-1">×</button>
+                                <button @click="startEditRecord(idx)" class="text-blue-500 text-xs">✏️</button>
+                                <button @click="deleteRecord(idx)" class="text-red-400 text-lg">×</button>
                             </div>
                         </div>
                         <div class="flex flex-wrap gap-2 text-xs">
@@ -100,11 +112,10 @@
                                 {{ c }}: {{ q }}
                             </span>
                         </div>
-                        <div v-if="r.status === '缺量'" class="mt-2 p-3 bg-red-50/50 rounded-lg border border-red-100">
-                            <p class="text-[10px] font-bold text-red-500 mb-2">實際到貨數：</p>
+                        <div v-if="r.status === '缺量'" class="mt-2 p-2 bg-red-50 rounded-lg border border-red-100">
                             <div class="grid grid-cols-2 gap-2">
                                 <div v-for="(q, c) in r.qtys" v-show="q > 0" :key="c" class="flex justify-between items-center bg-white px-2 py-1 rounded border">
-                                    <span class="text-[10px] text-gray-400">{{ c }}</span>
+                                    <span class="text-[9px] text-gray-400">{{ c }} 實到:</span>
                                     <input type="number" v-model.number="r.actualQtys[c]" @change="saveData" class="w-8 text-right font-bold text-red-600 bg-transparent outline-none">
                                 </div>
                             </div>
@@ -115,15 +126,20 @@
         </div>
 
         <div v-if="view === 'customers'" class="p-4">
-            <div v-for="(data, name) in filteredCustomerGroups" :key="name" class="bg-white p-5 rounded-2xl ios-shadow mb-4">
+            <div class="mb-4 p-3 bg-blue-50 text-blue-600 rounded-xl text-xs font-bold">
+                💡 這裡會將每位客人多次登記的相同款式「加總」統計。
+            </div>
+            <div v-for="(summary, name) in groupedCustomerSummary" :key="name" class="bg-white p-5 rounded-2xl ios-shadow mb-4">
                 <h3 class="font-black text-lg mb-3 border-b pb-1">👤 {{ name }}</h3>
-                <div v-for="order in data" class="mb-3 p-3 bg-slate-50 rounded-xl text-xs">
-                    <div class="flex justify-between font-bold mb-1">
-                        <span>{{ order.itemCode }} {{ order.itemName }}</span>
-                        <span :class="statusColor(order.status)" class="px-2 py-0.5 rounded-full text-[10px]">{{ order.status }}</span>
+                <div v-for="item in summary" class="mb-4 p-3 bg-slate-50 rounded-xl">
+                    <div class="flex justify-between font-bold text-xs mb-2">
+                        <span>{{ item.code }} {{ item.name }}</span>
                     </div>
-                    <div class="text-gray-400">
-                        <span v-for="(q, c) in order.qtys" v-show="q > 0" class="mr-3">{{ c }} × {{ q }}</span>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div v-for="(qty, color) in item.colorTotals" :key="color" class="text-[11px] bg-white p-2 rounded border flex justify-between">
+                            <span class="text-gray-400 uppercase font-bold">{{ color }}</span>
+                            <span class="font-black text-blue-600">× {{ qty }}</span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -143,35 +159,46 @@
                     editingItem: null,
                     selectedItem: null,
                     newRecord: { name: '', qtys: {} },
+                    editingRecordIndex: null,
                     items: [],
                     loading: true,
                     saving: false
                 }
             },
-            // 在頁面載入時自動執行 fetchData
-            mounted() { 
-                this.fetchData(); 
-            },
+            mounted() { this.fetchData(); },
             computed: {
                 filteredItems() {
                     const q = this.searchQuery.toLowerCase();
                     return this.items.filter(i => i.name.toLowerCase().includes(q) || i.code.toLowerCase().includes(q));
                 },
-                customerGroups() {
-                    const groups = {};
+                // 核心邏輯：計算客戶總量統計
+                groupedCustomerSummary() {
+                    const summary = {};
                     this.items.forEach(item => {
                         item.records.forEach(r => {
-                            if (!groups[r.name]) groups[r.name] = [];
-                            groups[r.name].push({ ...r, itemName: item.name, itemCode: item.code });
+                            if (!summary[r.name]) summary[r.name] = {};
+                            if (!summary[r.name][item.id]) {
+                                summary[r.name][item.id] = { 
+                                    code: item.code, 
+                                    name: item.name, 
+                                    colorTotals: {} 
+                                };
+                            }
+                            // 加總數量
+                            Object.entries(r.qtys).forEach(([color, qty]) => {
+                                if (qty && qty > 0) {
+                                    summary[r.name][item.id].colorTotals[color] = (summary[r.name][item.id].colorTotals[color] || 0) + qty;
+                                }
+                            });
                         });
                     });
-                    return groups;
-                },
-                filteredCustomerGroups() {
+
+                    // 過濾搜尋
                     const q = this.searchQuery.toLowerCase();
+                    if (!q) return summary;
                     const filtered = {};
-                    Object.keys(this.customerGroups).forEach(name => {
-                        if (name.toLowerCase().includes(q)) filtered[name] = this.customerGroups[name];
+                    Object.keys(summary).forEach(name => {
+                        if (name.toLowerCase().includes(q)) filtered[name] = summary[name];
                     });
                     return filtered;
                 }
@@ -183,44 +210,22 @@
                         const res = await fetch(CLOUD_API);
                         const json = await res.json();
                         this.items = json || [];
-                    } catch (e) { 
-                        console.error("Fetch error:", e);
-                    } finally { 
-                        this.loading = false; 
-                    }
+                    } catch (e) { console.error(e); } finally { this.loading = false; }
                 },
                 async saveData() {
                     this.saving = true;
                     try {
-                        await fetch(CLOUD_API, { 
-                            method: "POST", 
-                            body: JSON.stringify(this.items) 
-                        });
-                    } catch (e) { 
-                        alert("同步失敗，請檢查網路連接"); 
-                    } finally { 
-                        this.saving = false; 
-                    }
+                        await fetch(CLOUD_API, { method: "POST", body: JSON.stringify(this.items) });
+                    } catch (e) { alert("同步失敗"); } finally { this.saving = false; }
                 },
                 addItem() {
                     if (!this.newItem.name || !this.newItem.code) return;
                     const colorList = this.newItem.colors.split(/[,，]/).map(s => s.trim()).filter(s => s);
-                    
                     if (this.editingItem) {
-                        Object.assign(this.editingItem, {
-                            name: this.newItem.name,
-                            code: this.newItem.code.toUpperCase(),
-                            colors: colorList
-                        });
+                        Object.assign(this.editingItem, { name: this.newItem.name, code: this.newItem.code.toUpperCase(), colors: colorList });
                         this.editingItem = null;
                     } else {
-                        this.items.unshift({ 
-                            id: Date.now(), 
-                            code: this.newItem.code.toUpperCase(), 
-                            name: this.newItem.name, 
-                            colors: colorList, 
-                            records: [] 
-                        });
+                        this.items.unshift({ id: Date.now(), code: this.newItem.code.toUpperCase(), name: this.newItem.name, colors: colorList, records: [] });
                     }
                     this.newItem = { id: null, name: '', code: '', colors: '' };
                     this.saveData();
@@ -235,31 +240,52 @@
                     this.newItem = { id: null, name: '', code: '', colors: '' };
                 },
                 deleteItem(item) {
-                    if (confirm(`確定要刪除款式「${item.name}」嗎？這將刪除所有相關客人的登記紀錄！`)) {
+                    if (confirm(`確定刪除款式「${item.name}」？`)) {
                         this.items = this.items.filter(i => i.id !== item.id);
                         this.saveData();
                     }
                 },
                 openDetail(item) {
                     this.selectedItem = item;
-                    this.newRecord = { name: '', qtys: {} };
-                    item.colors.forEach(c => this.newRecord.qtys[c] = null);
+                    this.cancelEditRecord();
                     this.view = 'detail';
                 },
                 addRecord() {
                     if (!this.newRecord.name) return;
-                    this.selectedItem.records.unshift({
-                        ...this.newRecord,
-                        actualQtys: { ...this.newRecord.qtys },
-                        status: '未到貨',
-                        time: new Date().toLocaleString('zh-TW', { hour12: false })
-                    });
+                    
+                    if (this.editingRecordIndex !== null) {
+                        // 編輯舊紀錄
+                        const target = this.selectedItem.records[this.editingRecordIndex];
+                        target.name = this.newRecord.name;
+                        target.qtys = { ...this.newRecord.qtys };
+                        target.actualQtys = { ...this.newRecord.qtys };
+                        this.editingRecordIndex = null;
+                    } else {
+                        // 新增紀錄
+                        this.selectedItem.records.unshift({
+                            ...this.newRecord,
+                            actualQtys: { ...this.newRecord.qtys },
+                            status: '未到貨',
+                            time: new Date().toLocaleString('zh-TW', { hour12: false, month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
+                        });
+                    }
                     this.newRecord = { name: '', qtys: {} };
                     this.selectedItem.colors.forEach(c => this.newRecord.qtys[c] = null);
                     this.saveData();
                 },
+                startEditRecord(idx) {
+                    this.editingRecordIndex = idx;
+                    const r = this.selectedItem.records[idx];
+                    this.newRecord = { name: r.name, qtys: { ...r.qtys } };
+                    window.scrollTo({ top: 100, behavior: 'smooth' });
+                },
+                cancelEditRecord() {
+                    this.editingRecordIndex = null;
+                    this.newRecord = { name: '', qtys: {} };
+                    if (this.selectedItem) this.selectedItem.colors.forEach(c => this.newRecord.qtys[c] = null);
+                },
                 deleteRecord(index) {
-                    if (confirm("確定刪除這筆客人紀錄？")) {
+                    if (confirm("確定刪除這筆登記？")) {
                         this.selectedItem.records.splice(index, 1);
                         this.saveData();
                     }
