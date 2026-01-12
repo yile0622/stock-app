@@ -3,14 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MIU點貨 Pro - 強化統計版</title>
+    <title>MIU & FOCUS 點貨系統</title>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         .ios-shadow { box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
-        .tab-active { border-bottom: 3px solid #007AFF; color: #007AFF; }
+        .tab-active { border-bottom: 3px solid #78350f; color: #78350f; }
         .loading-overlay { background: rgba(255,255,255,0.8); backdrop-filter: blur(4px); }
         [v-cloak] { display: none; }
+        /* 店鋪專屬色 */
+        .shop-miu { color: #84522a; border-color: #84522a; }
+        .shop-miu-bg { background-color: #fdf5ef; color: #84522a; }
+        .shop-focus { color: #2563eb; border-color: #2563eb; }
+        .shop-focus-bg { background-color: #eff6ff; color: #2563eb; }
+        .btn-miu-active { background-color: #84522a !important; color: white !important; }
+        .btn-focus-active { background-color: #2563eb !important; color: white !important; }
     </style>
 </head>
 <body class="bg-slate-50 min-h-screen pb-10">
@@ -18,50 +25,50 @@
         
         <div class="fixed bottom-4 left-4 z-50 flex gap-2">
             <div v-if="saving" class="bg-black text-white px-3 py-1 rounded-full text-[10px] shadow-lg animate-pulse">☁️ 同步中...</div>
-            <button @click="fetchData" class="bg-white text-blue-600 px-3 py-1 rounded-full text-[10px] shadow border font-bold">🔄 刷新</button>
+            <button @click="fetchData" class="bg-white text-slate-600 px-3 py-1 rounded-full text-[10px] shadow border font-bold">🔄 刷新</button>
         </div>
 
         <div v-if="loading" class="fixed inset-0 loading-overlay z-[100] flex flex-col items-center justify-center">
-            <div class="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-2"></div>
-            <p class="text-blue-600 text-sm font-bold">讀取雲端資料...</p>
+            <div class="w-8 h-8 border-4 border-amber-800 border-t-transparent rounded-full animate-spin mb-2"></div>
+            <p class="text-amber-900 text-sm font-bold tracking-widest">資料傳輸中...</p>
         </div>
 
         <div class="sticky top-0 bg-white/90 backdrop-blur-md z-10 p-4 border-b">
-            <h1 class="text-xl font-bold text-gray-800 mb-2 text-center">📦 MIU 點貨系統</h1>
+            <h1 class="text-xl font-bold text-gray-800 mb-2 text-center">📦 MIU & FOCUS 點貨系統</h1>
             <input v-model="searchQuery" type="text" placeholder="🔍 搜尋款號、名稱、客人..." 
-                   class="w-full p-3 bg-gray-100 border-none rounded-xl focus:ring-2 focus:ring-blue-500 outline-none">
+                   class="w-full p-3 bg-gray-100 border-none rounded-xl focus:ring-2 focus:ring-amber-700 outline-none">
         </div>
 
         <div class="flex bg-white border-b text-sm font-medium text-gray-500">
-            <button @click="view = 'items'" :class="{'tab-active': view === 'items'}" class="py-3 w-1/2 text-center text-sm">款式管理</button>
-            <button @click="view = 'customers'" :class="{'tab-active': view === 'customers'}" class="py-3 w-1/2 text-center text-sm">客戶總覽(統計)</button>
+            <button @click="view = 'items'" :class="{'tab-active': view === 'items'}" class="py-3 w-1/2 text-center">款式管理</button>
+            <button @click="view = 'customers'" :class="{'tab-active': view === 'customers'}" class="py-3 w-1/2 text-center">客戶總覽</button>
         </div>
 
         <div v-if="view === 'items'" class="p-4">
-            <div class="bg-white p-5 rounded-2xl ios-shadow mb-6 border border-blue-50">
-                <h3 class="text-[10px] font-black text-blue-400 mb-3 tracking-widest uppercase">{{ editingItem ? '編輯款式 EDIT' : '新增商品 ADD' }}</h3>
+            <div class="bg-white p-5 rounded-2xl ios-shadow mb-6 border border-amber-50">
+                <h3 class="text-[10px] font-black text-amber-700 mb-3 tracking-widest uppercase">{{ editingItem ? '編輯款式 EDIT' : '新增商品 ADD' }}</h3>
                 <div class="grid grid-cols-2 gap-2 mb-2">
-                    <input v-model="newItem.code" placeholder="款號" class="border p-2 rounded-lg text-sm bg-gray-50">
-                    <input v-model="newItem.name" placeholder="名稱" class="border p-2 rounded-lg text-sm bg-gray-50">
+                    <input v-model="newItem.code" placeholder="款號" class="border p-2 rounded-lg text-sm bg-gray-50 uppercase outline-none">
+                    <input v-model="newItem.name" placeholder="名稱" class="border p-2 rounded-lg text-sm bg-gray-50 outline-none">
                 </div>
-                <input v-model="newItem.colors" placeholder="顏色 (用逗號隔開)" class="w-full border p-2 rounded-lg mb-3 text-sm bg-gray-50">
+                <input v-model="newItem.colors" placeholder="顏色 (用逗號隔開)" class="w-full border p-2 rounded-lg mb-3 text-sm bg-gray-50 outline-none">
                 <div class="flex gap-2">
-                    <button @click="addItem" class="flex-1 bg-blue-600 text-white py-3 rounded-xl font-bold shadow-lg shadow-blue-200">
+                    <button @click="addItem" class="flex-1 bg-amber-800 text-white py-3 rounded-xl font-bold shadow-lg shadow-amber-100">
                         {{ editingItem ? '儲存修改' : '建立商品' }}
                     </button>
-                    <button v-if="editingItem" @click="cancelEditItem" class="px-4 bg-gray-200 text-gray-600 rounded-xl font-bold">取消</button>
+                    <button v-if="editingItem" @click="cancelEditItem" class="px-4 bg-gray-200 text-gray-600 rounded-xl font-bold text-sm">取消</button>
                 </div>
             </div>
 
             <div class="space-y-3">
                 <div v-for="item in filteredItems" :key="item.id" 
-                     class="bg-white p-4 rounded-2xl ios-shadow flex justify-between items-center group">
+                     class="bg-white p-4 rounded-2xl ios-shadow flex justify-between items-center">
                     <div @click="openDetail(item)" class="flex-1 cursor-pointer">
-                        <span class="text-[10px] font-bold bg-blue-100 text-blue-600 px-2 py-0.5 rounded mr-2 uppercase">{{ item.code }}</span>
+                        <span class="text-[10px] font-bold bg-amber-100 text-amber-800 px-2 py-0.5 rounded mr-2 uppercase">{{ item.code }}</span>
                         <span class="font-bold text-gray-800">{{ item.name }}</span>
                     </div>
                     <div class="flex gap-3">
-                        <button @click="startEditItem(item)" class="text-blue-400 text-xs">編輯</button>
+                        <button @click="startEditItem(item)" class="text-amber-700 text-xs">編輯</button>
                         <button @click="deleteItem(item)" class="text-red-300 text-xs hover:text-red-500">刪除</button>
                     </div>
                 </div>
@@ -69,46 +76,64 @@
         </div>
 
         <div v-if="view === 'detail'" class="p-4">
-            <button @click="view = 'items'" class="mb-4 text-blue-500 font-bold flex items-center">‹ 返回清單</button>
+            <button @click="view = 'items'" class="mb-4 text-amber-800 font-bold flex items-center">‹ 返回清單</button>
+            
+            <div class="bg-amber-800 p-4 rounded-2xl shadow-lg mb-4 text-white">
+                <h3 class="text-xs font-bold mb-2 opacity-80 uppercase tracking-widest">📊 當前訂購總計</h3>
+                <div class="flex flex-wrap gap-2">
+                    <div v-for="(qty, color) in currentItemTotal" :key="color" class="bg-white/20 px-3 py-1 rounded-lg">
+                        <span class="text-[10px] font-bold uppercase mr-1">{{ color }}</span>
+                        <span class="text-lg font-black">{{ qty }}</span>
+                    </div>
+                    <div v-if="Object.keys(currentItemTotal).length === 0" class="text-sm opacity-60 italic">尚未有登記紀錄</div>
+                </div>
+            </div>
+
             <div class="bg-white p-5 rounded-2xl ios-shadow">
-                <h2 class="text-xl font-bold mb-4">{{ selectedItem.code }} {{ selectedItem.name }}</h2>
+                <h2 class="text-xl font-bold mb-4 text-slate-800">{{ selectedItem.code }} {{ selectedItem.name }}</h2>
                 
                 <div class="bg-slate-50 p-4 rounded-xl mb-6 border border-slate-200">
-                    <h3 class="text-xs font-bold text-slate-500 mb-3">{{ editingRecordIndex !== null ? '✏️ 正在修改紀錄' : '🆕 新增登記' }}</h3>
-                    <input v-model="newRecord.name" placeholder="👤 客人姓名" class="w-full border p-3 rounded-xl mb-3 text-sm focus:ring-2 focus:ring-blue-400">
+                    <div class="flex justify-between items-center mb-3">
+                        <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest">{{ editingRecordIndex !== null ? '✏️ 編輯紀錄' : '🆕 新增登記' }}</h3>
+                        <div class="flex bg-gray-200 p-1 rounded-lg shadow-inner">
+                            <button @click="newRecord.shop = 'MIU'" :class="newRecord.shop === 'MIU' ? 'btn-miu-active shadow-sm' : 'text-gray-400'" class="px-4 py-1.5 rounded-md text-[10px] font-black transition-all">MIU</button>
+                            <button @click="newRecord.shop = 'FOCUS'" :class="newRecord.shop === 'FOCUS' ? 'btn-focus-active shadow-sm' : 'text-gray-400'" class="px-4 py-1.5 rounded-md text-[10px] font-black transition-all">FOCUS</button>
+                        </div>
+                    </div>
+                    
+                    <input v-model="newRecord.name" placeholder="👤 客人姓名" class="w-full border p-3 rounded-xl mb-3 text-sm outline-none focus:ring-2 focus:ring-amber-600">
                     <div class="grid grid-cols-2 gap-2 mb-3">
                         <div v-for="color in selectedItem.colors" :key="color" class="flex items-center bg-white p-2 rounded-xl border">
                             <span class="text-[10px] w-12 truncate text-gray-400 font-bold uppercase">{{ color }}</span>
-                            <input type="number" v-model.number="newRecord.qtys[color]" class="w-full text-right outline-none font-bold text-blue-600" placeholder="0">
+                            <input type="number" v-model.number="newRecord.qtys[color]" class="w-full text-right outline-none font-bold text-amber-700" placeholder="0">
                         </div>
                     </div>
                     <div class="flex gap-2">
-                        <button @click="addRecord" class="flex-1 bg-slate-800 text-white py-3 rounded-xl font-bold">
+                        <button @click="addRecord" :class="newRecord.shop === 'MIU' ? 'bg-[#84522a]' : 'bg-[#2563eb]'" class="flex-1 text-white py-3 rounded-xl font-bold transition-colors">
                             {{ editingRecordIndex !== null ? '更新紀錄' : '確認登記' }}
                         </button>
-                        <button v-if="editingRecordIndex !== null" @click="cancelEditRecord" class="px-4 bg-gray-200 text-gray-600 rounded-xl font-bold">取消</button>
+                        <button v-if="editingRecordIndex !== null" @click="cancelEditRecord" class="px-4 bg-gray-200 text-gray-600 rounded-xl font-bold text-sm">取消</button>
                     </div>
                 </div>
 
                 <div class="space-y-4">
-                    <div v-for="(r, idx) in selectedItem.records" :key="idx" 
-                         :class="editingRecordIndex === idx ? 'ring-2 ring-blue-500 border-transparent' : 'border-transparent'"
-                         class="bg-gray-50 p-4 rounded-xl border relative transition-all">
+                    <div v-for="(r, idx) in selectedItem.records" :key="idx" class="bg-gray-50 p-4 rounded-xl border relative">
                         <div class="flex justify-between items-start mb-1">
                             <div>
+                                <span :class="r.shop === 'MIU' ? 'shop-miu-bg' : 'shop-focus-bg'" class="text-[9px] font-black px-2 py-0.5 rounded mr-1 italic">{{ r.shop }}</span>
                                 <span class="font-black text-gray-700 mr-2">{{ r.name }}</span>
-                                <span class="text-[9px] text-gray-400">{{ r.time }}</span>
+                                <span class="text-[9px] text-gray-400 block mt-1 tracking-tighter">{{ r.time }}</span>
                             </div>
                             <div class="flex items-center gap-2">
-                                <select v-model="r.status" @change="saveData" :class="statusColor(r.status)" class="text-[10px] rounded-full px-2 py-1 font-bold shadow-sm border-none">
+                                <select v-model="r.status" @change="saveData" :class="statusColor(r.status)" class="text-[10px] rounded-full px-2 py-1 font-bold shadow-sm">
                                     <option>未到貨</option><option>到貨</option><option>缺量</option>
                                 </select>
-                                <button @click="startEditRecord(idx)" class="text-blue-500 text-xs">✏️</button>
-                                <button @click="deleteRecord(idx)" class="text-red-400 text-lg">×</button>
+                                <button @click="startEditRecord(idx)" class="text-slate-400 text-xs">✏️</button>
+                                <button @click="deleteRecord(idx)" class="text-red-300 text-lg">×</button>
                             </div>
                         </div>
-                        <div class="flex flex-wrap gap-2 text-xs">
-                            <span v-for="(q, c) in r.qtys" v-show="q > 0" class="bg-white px-2 py-0.5 rounded border text-gray-500">
+                        <div class="flex flex-wrap gap-2 text-xs mt-2">
+                            <span v-for="(q, c) in r.qtys" v-show="q > 0" class="bg-white px-2 py-0.5 rounded border text-gray-500 font-bold">
                                 {{ c }}: {{ q }}
                             </span>
                         </div>
@@ -116,7 +141,7 @@
                             <div class="grid grid-cols-2 gap-2">
                                 <div v-for="(q, c) in r.qtys" v-show="q > 0" :key="c" class="flex justify-between items-center bg-white px-2 py-1 rounded border">
                                     <span class="text-[9px] text-gray-400">{{ c }} 實到:</span>
-                                    <input type="number" v-model.number="r.actualQtys[c]" @change="saveData" class="w-8 text-right font-bold text-red-600 bg-transparent outline-none">
+                                    <input type="number" v-model.number="r.actualQtys[c]" @change="saveData" class="w-8 text-right font-bold text-red-600 outline-none">
                                 </div>
                             </div>
                         </div>
@@ -126,19 +151,27 @@
         </div>
 
         <div v-if="view === 'customers'" class="p-4">
-            <div class="mb-4 p-3 bg-blue-50 text-blue-600 rounded-xl text-xs font-bold">
-                💡 這裡會將每位客人多次登記的相同款式「加總」統計。
-            </div>
-            <div v-for="(summary, name) in groupedCustomerSummary" :key="name" class="bg-white p-5 rounded-2xl ios-shadow mb-4">
-                <h3 class="font-black text-lg mb-3 border-b pb-1">👤 {{ name }}</h3>
-                <div v-for="item in summary" class="mb-4 p-3 bg-slate-50 rounded-xl">
-                    <div class="flex justify-between font-bold text-xs mb-2">
-                        <span>{{ item.code }} {{ item.name }}</span>
-                    </div>
-                    <div class="grid grid-cols-2 gap-2">
-                        <div v-for="(qty, color) in item.colorTotals" :key="color" class="text-[11px] bg-white p-2 rounded border flex justify-between">
-                            <span class="text-gray-400 uppercase font-bold">{{ color }}</span>
-                            <span class="font-black text-blue-600">× {{ qty }}</span>
+            <div v-for="(summary, name) in groupedCustomerSummary" :key="name" class="bg-white p-5 rounded-2xl ios-shadow mb-4 border-l-4" :class="summary.hasMissing ? 'border-red-400' : 'border-emerald-400'">
+                <h3 class="font-black text-lg mb-3 border-b pb-1 flex justify-between items-center">
+                    <span>👤 {{ name }}</span>
+                    <span v-if="summary.hasMissing" class="text-[9px] bg-red-500 text-white px-2 py-0.5 rounded-full uppercase">欠貨中</span>
+                </h3>
+                <div v-for="item in summary.items" :key="item.code" class="mb-4 last:mb-0">
+                    <p class="text-[10px] font-black text-slate-400 mb-2 uppercase">{{ item.code }} - {{ item.name }}</p>
+                    <div class="grid grid-cols-1 gap-2">
+                        <div v-for="(stats, color) in item.colors" :key="color" class="flex flex-col bg-slate-50 p-2 rounded-lg border border-slate-100">
+                            <div class="flex justify-between items-center text-xs">
+                                <span class="font-bold text-slate-600 uppercase">{{ color }}</span>
+                                <div class="flex gap-2 items-center">
+                                    <span class="text-slate-400 scale-90">預訂: {{ stats.total }}</span>
+                                    <span v-if="stats.missing > 0" class="text-red-600 font-black bg-white px-2 py-0.5 rounded border border-red-100">欠: {{ stats.missing }}</span>
+                                    <span v-else class="text-emerald-600 font-black">已齊</span>
+                                </div>
+                            </div>
+                            <div class="flex gap-3 mt-1.5 pt-1.5 border-t border-dashed border-slate-200">
+                                <span v-if="stats.shops.MIU" class="text-[10px] font-bold text-[#84522a]">MIU: {{ stats.shops.MIU }} 件</span>
+                                <span v-if="stats.shops.FOCUS" class="text-[10px] font-bold text-[#2563eb]">FOCUS: {{ stats.shops.FOCUS }} 件</span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -158,7 +191,7 @@
                     newItem: { id: null, name: '', code: '', colors: '' },
                     editingItem: null,
                     selectedItem: null,
-                    newRecord: { name: '', qtys: {} },
+                    newRecord: { name: '', qtys: {}, shop: 'MIU' },
                     editingRecordIndex: null,
                     items: [],
                     loading: true,
@@ -171,36 +204,47 @@
                     const q = this.searchQuery.toLowerCase();
                     return this.items.filter(i => i.name.toLowerCase().includes(q) || i.code.toLowerCase().includes(q));
                 },
-                // 核心邏輯：計算客戶總量統計
+                currentItemTotal() {
+                    if (!this.selectedItem) return {};
+                    const totals = {};
+                    this.selectedItem.records.forEach(r => {
+                        Object.entries(r.qtys).forEach(([color, qty]) => {
+                            if (qty > 0) totals[color] = (totals[color] || 0) + qty;
+                        });
+                    });
+                    return totals;
+                },
                 groupedCustomerSummary() {
                     const summary = {};
                     this.items.forEach(item => {
                         item.records.forEach(r => {
-                            if (!summary[r.name]) summary[r.name] = {};
-                            if (!summary[r.name][item.id]) {
-                                summary[r.name][item.id] = { 
-                                    code: item.code, 
-                                    name: item.name, 
-                                    colorTotals: {} 
-                                };
+                            if (!summary[r.name]) summary[r.name] = { items: {}, hasMissing: false };
+                            if (!summary[r.name].items[item.id]) {
+                                summary[r.name].items[item.id] = { code: item.code, name: item.name, colors: {} };
                             }
-                            // 加總數量
                             Object.entries(r.qtys).forEach(([color, qty]) => {
-                                if (qty && qty > 0) {
-                                    summary[r.name][item.id].colorTotals[color] = (summary[r.name][item.id].colorTotals[color] || 0) + qty;
+                                if (qty > 0) {
+                                    if (!summary[r.name].items[item.id].colors[color]) {
+                                        summary[r.name].items[item.id].colors[color] = { total: 0, actual: 0, missing: 0, shops: {} };
+                                    }
+                                    const stats = summary[r.name].items[item.id].colors[color];
+                                    stats.total += qty;
+                                    stats.shops[r.shop] = (stats.shops[r.shop] || 0) + qty;
+                                    
+                                    if (r.status === '到貨') stats.actual += qty;
+                                    else if (r.status === '缺量') stats.actual += (r.actualQtys[color] || 0);
+                                    
+                                    stats.missing = stats.total - stats.actual;
+                                    if (stats.missing > 0) summary[r.name].hasMissing = true;
                                 }
                             });
                         });
                     });
-
-                    // 過濾搜尋
                     const q = this.searchQuery.toLowerCase();
                     if (!q) return summary;
-                    const filtered = {};
-                    Object.keys(summary).forEach(name => {
-                        if (name.toLowerCase().includes(q)) filtered[name] = summary[name];
-                    });
-                    return filtered;
+                    const res = {};
+                    Object.keys(summary).forEach(n => { if (n.toLowerCase().includes(q)) res[n] = summary[n]; });
+                    return res;
                 }
             },
             methods: {
@@ -208,8 +252,7 @@
                     this.loading = true;
                     try {
                         const res = await fetch(CLOUD_API);
-                        const json = await res.json();
-                        this.items = json || [];
+                        this.items = await res.json() || [];
                     } catch (e) { console.error(e); } finally { this.loading = false; }
                 },
                 async saveData() {
@@ -240,7 +283,7 @@
                     this.newItem = { id: null, name: '', code: '', colors: '' };
                 },
                 deleteItem(item) {
-                    if (confirm(`確定刪除款式「${item.name}」？`)) {
+                    if (confirm("確定刪除此款式？")) {
                         this.items = this.items.filter(i => i.id !== item.id);
                         this.saveData();
                     }
@@ -252,16 +295,11 @@
                 },
                 addRecord() {
                     if (!this.newRecord.name) return;
-                    
                     if (this.editingRecordIndex !== null) {
-                        // 編輯舊紀錄
                         const target = this.selectedItem.records[this.editingRecordIndex];
-                        target.name = this.newRecord.name;
-                        target.qtys = { ...this.newRecord.qtys };
-                        target.actualQtys = { ...this.newRecord.qtys };
+                        Object.assign(target, { name: this.newRecord.name, qtys: { ...this.newRecord.qtys }, shop: this.newRecord.shop });
                         this.editingRecordIndex = null;
                     } else {
-                        // 新增紀錄
                         this.selectedItem.records.unshift({
                             ...this.newRecord,
                             actualQtys: { ...this.newRecord.qtys },
@@ -269,23 +307,25 @@
                             time: new Date().toLocaleString('zh-TW', { hour12: false, month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
                         });
                     }
-                    this.newRecord = { name: '', qtys: {} };
+                    const shopBackup = this.newRecord.shop;
+                    this.newRecord = { name: '', qtys: {}, shop: shopBackup };
                     this.selectedItem.colors.forEach(c => this.newRecord.qtys[c] = null);
                     this.saveData();
                 },
                 startEditRecord(idx) {
                     this.editingRecordIndex = idx;
                     const r = this.selectedItem.records[idx];
-                    this.newRecord = { name: r.name, qtys: { ...r.qtys } };
+                    this.newRecord = { name: r.name, qtys: { ...r.qtys }, shop: r.shop };
                     window.scrollTo({ top: 100, behavior: 'smooth' });
                 },
                 cancelEditRecord() {
                     this.editingRecordIndex = null;
-                    this.newRecord = { name: '', qtys: {} };
+                    const shopBackup = this.newRecord?.shop || 'MIU';
+                    this.newRecord = { name: '', qtys: {}, shop: shopBackup };
                     if (this.selectedItem) this.selectedItem.colors.forEach(c => this.newRecord.qtys[c] = null);
                 },
                 deleteRecord(index) {
-                    if (confirm("確定刪除這筆登記？")) {
+                    if (confirm("確定刪除？")) {
                         this.selectedItem.records.splice(index, 1);
                         this.saveData();
                     }
