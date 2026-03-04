@@ -25,6 +25,7 @@
         
         <div class="fixed bottom-6 right-6 z-50 flex flex-col gap-2 items-end">
             <div v-if="saving" class="bg-black/80 text-white px-4 py-2 rounded-2xl text-xs shadow-2xl animate-bounce">☁️ 同步中...</div>
+            <div v-if="isAutoSyncing" class="bg-amber-600/90 text-white px-3 py-1.5 rounded-xl text-[10px] shadow-lg animate-pulse">正在自動檢查更新...</div>
             <button @click="fetchData" class="bg-white text-slate-700 p-3 rounded-full shadow-lg border border-slate-100 hover:rotate-180 transition-transform duration-500">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
             </button>
@@ -32,8 +33,11 @@
 
         <header class="sticky top-0 z-40 bg-f8fafc/80 backdrop-blur-md py-4">
             <div class="flex items-center justify-between mb-4">
-                <h1 class="text-2xl font-black text-slate-800 tracking-tight">📦 <span class="text-amber-800">MIU</span> & <span class="text-blue-600">FOCUS</span></h1>
-                <span class="text-[10px] bg-slate-200 px-2 py-1 rounded-lg font-bold text-slate-500 uppercase">Pro v2.4</span>
+                <div>
+                    <h1 class="text-2xl font-black text-slate-800 tracking-tight">📦 <span class="text-amber-800">MIU</span> & <span class="text-blue-600">FOCUS</span></h1>
+                    <p class="text-[9px] text-slate-400 font-bold mt-1">最後同步：{{ lastSyncTime || '尚未連線' }}</p>
+                </div>
+                <span class="text-[10px] bg-slate-200 px-2 py-1 rounded-lg font-bold text-slate-500 uppercase">Pro v2.5 Auto</span>
             </div>
             <input v-model="searchQuery" type="text" placeholder="搜尋款號、名稱、客人..." 
                    class="w-full p-4 bg-white border-none rounded-2xl shadow-sm focus:ring-2 focus:ring-amber-600 outline-none">
@@ -229,15 +233,33 @@
         createApp({
             data() {
                 return {
-                    view: 'items', searchQuery: '',
+                    view: 'items', 
+                    searchQuery: '',
                     newItem: { id: null, name: '', code: '', colors: '', price: null },
-                    editingItem: null, selectedItem: null,
+                    editingItem: null, 
+                    selectedItem: null,
                     newRecord: { name: '', qtys: {}, shop: 'MIU' },
-                    editingRecordIndex: null, items: [],
-                    loading: true, saving: false
+                    editingRecordIndex: null, 
+                    items: [],
+                    loading: true, 
+                    saving: false,
+                    // 自動同步相關
+                    autoSyncTimer: null,
+                    lastSyncTime: '',
+                    isAutoSyncing: false
                 }
             },
-            mounted() { this.fetchData(); },
+            mounted() { 
+                this.fetchData(); 
+                // 設定每 60 秒自動同步一次
+                this.autoSyncTimer = setInterval(() => {
+                    this.autoFetchData();
+                }, 30000);
+            },
+            beforeUnmount() {
+                // 清除定時器
+                if (this.autoSyncTimer) clearInterval(this.autoSyncTimer);
+            },
             computed: {
                 filteredItems() {
                     const q = this.searchQuery.toLowerCase();
@@ -304,12 +326,36 @@
                         const res = await fetch(CLOUD_API);
                         const data = await res.json() || [];
                         this.items = data.map(i => ({ ...i, orderedQtys: i.orderedQtys || {} }));
+                        this.lastSyncTime = new Date().toLocaleTimeString();
                     } catch (e) { console.error(e); } finally { this.loading = false; }
+                },
+                // 背景自動同步用（不顯示全螢幕 Loading）
+                async autoFetchData() {
+                    // 如果正在編輯商品、正在登記客人、或者正在存檔，先跳過這次自動同步，避免資料衝突
+                    if (this.editingItem || this.editingRecordIndex !== null || this.saving) return;
+
+                    this.isAutoSyncing = true;
+                    try {
+                        const res = await fetch(CLOUD_API);
+                        const data = await res.json();
+                        if (data) {
+                            // 更新資料庫
+                            this.items = data.map(i => ({ ...i, orderedQtys: i.orderedQtys || {} }));
+                            this.lastSyncTime = new Date().toLocaleTimeString();
+                            
+                            // 如果當前開著某個詳情頁，也要同步更新 selectedItem 引用
+                            if (this.selectedItem) {
+                                const fresh = this.items.find(i => i.id === this.selectedItem.id);
+                                if (fresh) this.selectedItem = fresh;
+                            }
+                        }
+                    } catch (e) { console.error("自動同步失敗:", e); } finally { this.isAutoSyncing = false; }
                 },
                 async saveData() {
                     this.saving = true;
                     try {
                         await fetch(CLOUD_API, { method: "POST", body: JSON.stringify(this.items) });
+                        this.lastSyncTime = new Date().toLocaleTimeString();
                     } catch (e) { alert("同步失敗"); } finally { this.saving = false; }
                 },
                 addItem() {
@@ -317,7 +363,6 @@
                     const colorList = this.newItem.colors.split(/[，,、.\/\s]+/).map(s => s.trim()).filter(s => s);
                     
                     if (this.editingItem) {
-                        // 更新現有商品
                         Object.assign(this.editingItem, { 
                             name: this.newItem.name, 
                             code: this.newItem.code.toUpperCase(), 
@@ -326,7 +371,6 @@
                         });
                         this.editingItem = null;
                     } else {
-                        // 新增商品
                         this.items.unshift({ 
                             id: Date.now(), 
                             code: this.newItem.code.toUpperCase(), 
@@ -350,7 +394,7 @@
                     this.newItem = { id: null, name: '', code: '', colors: '', price: null };
                 },
                 deleteItem(id) {
-                    if (confirm("⚠️ 警告：刪除商品將會連同所有客人的訂購紀錄一併移除，確定要刪除嗎？")) {
+                    if (confirm("⚠️ 警告：確定要刪除嗎？")) {
                         this.items = this.items.filter(i => i.id !== id);
                         this.saveData();
                     }
