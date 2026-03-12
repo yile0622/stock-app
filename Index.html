@@ -19,6 +19,7 @@
         .animate-fade-in { animation: fadeIn 0.3s ease-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
+
 </head>
 <body class="min-h-screen pb-20">
     <div id="app" v-cloak class="max-w-xl mx-auto px-4">
@@ -37,17 +38,15 @@
                     <h1 class="text-2xl font-black text-slate-800 tracking-tight">📦 <span class="text-amber-800">MIU</span> & <span class="text-blue-600">FOCUS</span></h1>
                     <p class="text-[9px] text-slate-400 font-bold mt-1">最後同步：{{ lastSyncTime || '尚未連線' }}</p>
                 </div>
-                <span class="text-[10px] bg-slate-200 px-2 py-1 rounded-lg font-bold text-slate-500 uppercase">Pro v2.5 Auto</span>
+                <span class="text-[10px] bg-slate-200 px-2 py-1 rounded-lg font-bold text-slate-500 uppercase">Pro v3.0 Multi</span>
             </div>
             <input v-model="searchQuery" type="text" placeholder="搜尋款號、名稱、客人..." 
                    class="w-full p-4 bg-white border-none rounded-2xl shadow-sm focus:ring-2 focus:ring-amber-600 outline-none">
         </header>
-
         <nav class="flex bg-white rounded-2xl p-1 shadow-sm mb-6 border border-slate-100">
             <button @click="view = 'items'" :class="{'tab-active text-amber-900 font-bold': view === 'items'}" class="flex-1 py-3 text-sm text-slate-400 transition-all">款式管理</button>
             <button @click="view = 'customers'" :class="{'tab-active text-amber-900 font-bold': view === 'customers'}" class="flex-1 py-3 text-sm text-slate-400 transition-all">客戶明細</button>
         </nav>
-
         <main v-if="view === 'items'" class="space-y-6">
             <section class="bg-white p-6 rounded-3xl ios-shadow border border-amber-50">
                 <h3 class="text-xs font-black text-slate-400 tracking-widest uppercase mb-4">{{ editingItem ? '✏️ 正在編輯商品' : '🆕 新增款式' }}</h3>
@@ -95,7 +94,7 @@
 
         <div v-if="view === 'detail'" class="animate-fade-in">
             <button @click="view = 'items'" class="mb-4 text-slate-400 font-bold flex items-center">‹ 返回清單</button>
-            
+         
             <div class="bg-slate-900 p-6 rounded-[2rem] shadow-2xl mb-6 text-white overflow-hidden">
                 <div class="flex justify-between items-start mb-6">
                     <div>
@@ -133,7 +132,7 @@
                 <div class="grid grid-cols-2 gap-3">
                     <div v-for="color in selectedItem.colors" :key="color" class="flex items-center bg-white p-3 rounded-xl shadow-sm border border-blue-50">
                         <span class="text-[10px] w-14 truncate text-slate-400 font-black uppercase">{{ color }}</span>
-                        <input type="number" v-model.number="selectedItem.orderedQtys[color]" @change="saveData" class="w-full text-right outline-none font-black text-blue-600 bg-transparent" placeholder="0">
+                        <input type="number" v-model.number="selectedItem.orderedQtys[color]" @change="saveData(selectedItem)" class="w-full text-right outline-none font-black text-blue-600 bg-transparent" placeholder="0">
                     </div>
                 </div>
             </div>
@@ -175,8 +174,9 @@
                                     </span>
                                 </div>
                             </div>
+
                             <div class="text-right">
-                                <select v-model="r.status" @change="saveData" :class="statusColor(r.status)" class="text-[10px] rounded-full px-3 py-1 font-black outline-none border-none shadow-sm">
+                                <select v-model="r.status" @change="saveData(selectedItem)" :class="statusColor(r.status)" class="text-[10px] rounded-full px-3 py-1 font-black outline-none border-none shadow-sm">
                                     <option>未到貨</option><option>到貨</option><option>缺量</option>
                                 </select>
                                 <div class="mt-2 flex gap-2 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
@@ -185,10 +185,11 @@
                                 </div>
                             </div>
                         </div>
+
                         <div v-if="r.status === '缺量'" class="mt-4 p-3 bg-red-50 rounded-xl grid grid-cols-2 gap-2">
                             <div v-for="(q, c) in r.qtys" v-show="q > 0" :key="c" class="flex justify-between bg-white px-2 py-1 rounded border border-red-100">
                                 <span class="text-[9px] font-black text-slate-400">{{ c }} 實到:</span>
-                                <input type="number" v-model.number="r.actualQtys[c]" @change="saveData" class="w-8 text-right font-black text-red-600 outline-none">
+                                <input type="number" v-model.number="r.actualQtys[c]" @change="saveData(selectedItem)" class="w-8 text-right font-black text-red-600 outline-none">
                             </div>
                         </div>
                     </div>
@@ -214,6 +215,7 @@
                                     <span v-for="(q, shop) in stats.shops" :key="shop" :class="shop === 'MIU' ? 'bg-[#84522a]' : 'bg-[#2563eb]'" class="text-[8px] text-white px-1.5 py-0.5 rounded font-bold">{{ shop }}</span>
                                 </div>
                             </div>
+
                             <div class="flex gap-3 items-center">
                                 <span class="text-[10px] text-slate-400">訂: {{ stats.total }}</span>
                                 <span v-if="stats.missing > 0" class="text-xs text-red-600 font-black">缺: {{ stats.missing }}</span>
@@ -225,8 +227,9 @@
             </div>
         </div>
     </div>
-
+    
     <script>
+
         const CLOUD_API = "https://script.google.com/macros/s/AKfycbz85Vud5u0MqEhG6GaSqWnNjqwa7wx2NFV5aZLmx07slZPseuqQHbrdzAS7gAW-jifM/exec";
         const { createApp } = Vue;
         
@@ -243,7 +246,6 @@
                     items: [],
                     loading: true, 
                     saving: false,
-                    // 自動同步相關
                     autoSyncTimer: null,
                     lastSyncTime: '',
                     isAutoSyncing: false
@@ -251,13 +253,11 @@
             },
             mounted() { 
                 this.fetchData(); 
-                // 設定每 60 秒自動同步一次
                 this.autoSyncTimer = setInterval(() => {
                     this.autoFetchData();
                 }, 30000);
             },
             beforeUnmount() {
-                // 清除定時器
                 if (this.autoSyncTimer) clearInterval(this.autoSyncTimer);
             },
             computed: {
@@ -329,21 +329,15 @@
                         this.lastSyncTime = new Date().toLocaleTimeString();
                     } catch (e) { console.error(e); } finally { this.loading = false; }
                 },
-                // 背景自動同步用（不顯示全螢幕 Loading）
                 async autoFetchData() {
-                    // 如果正在編輯商品、正在登記客人、或者正在存檔，先跳過這次自動同步，避免資料衝突
                     if (this.editingItem || this.editingRecordIndex !== null || this.saving) return;
-
                     this.isAutoSyncing = true;
                     try {
                         const res = await fetch(CLOUD_API);
                         const data = await res.json();
                         if (data) {
-                            // 更新資料庫
                             this.items = data.map(i => ({ ...i, orderedQtys: i.orderedQtys || {} }));
                             this.lastSyncTime = new Date().toLocaleTimeString();
-                            
-                            // 如果當前開著某個詳情頁，也要同步更新 selectedItem 引用
                             if (this.selectedItem) {
                                 const fresh = this.items.find(i => i.id === this.selectedItem.id);
                                 if (fresh) this.selectedItem = fresh;
@@ -351,10 +345,11 @@
                         }
                     } catch (e) { console.error("自動同步失敗:", e); } finally { this.isAutoSyncing = false; }
                 },
-                async saveData() {
+                async saveData(specificItem = null) {
                     this.saving = true;
                     try {
-                        await fetch(CLOUD_API, { method: "POST", body: JSON.stringify(this.items) });
+                        const payload = specificItem ? specificItem : this.items;
+                        await fetch(CLOUD_API, { method: "POST", body: JSON.stringify(payload) });
                         this.lastSyncTime = new Date().toLocaleTimeString();
                     } catch (e) { alert("同步失敗"); } finally { this.saving = false; }
                 },
@@ -369,9 +364,10 @@
                             colors: colorList, 
                             price: this.newItem.price 
                         });
+                        this.saveData(this.editingItem);
                         this.editingItem = null;
                     } else {
-                        this.items.unshift({ 
+                        const newItemObj = { 
                             id: Date.now(), 
                             code: this.newItem.code.toUpperCase(), 
                             name: this.newItem.name, 
@@ -379,10 +375,11 @@
                             price: this.newItem.price, 
                             orderedQtys: {}, 
                             records: [] 
-                        });
+                        };
+                        this.items.unshift(newItemObj);
+                        this.saveData(newItemObj);
                     }
                     this.newItem = { id: null, name: '', code: '', colors: '', price: null };
-                    this.saveData();
                 },
                 startEditItem(item) {
                     this.editingItem = item;
@@ -396,7 +393,7 @@
                 deleteItem(id) {
                     if (confirm("⚠️ 警告：確定要刪除嗎？")) {
                         this.items = this.items.filter(i => i.id !== id);
-                        this.saveData();
+                        this.saveData(); // 刪除必須傳送整份更新後的 items
                     }
                 },
                 openDetail(item) {
@@ -423,7 +420,7 @@
                     }
                     this.newRecord = { name: '', qtys: {}, shop: this.newRecord.shop };
                     this.selectedItem.colors.forEach(c => this.newRecord.qtys[c] = null);
-                    this.saveData();
+                    this.saveData(this.selectedItem);
                 },
                 startEditRecord(idx) {
                     this.editingRecordIndex = idx;
@@ -438,7 +435,7 @@
                 deleteRecord(index) {
                     if (confirm("確定刪除此筆客人紀錄？")) {
                         this.selectedItem.records.splice(index, 1);
-                        this.saveData();
+                        this.saveData(this.selectedItem);
                     }
                 },
                 statusColor(status) {
